@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.next/
+node_modules/
+catalog_data/originals/
+catalog_data/watermarked/
+postgres_data/
