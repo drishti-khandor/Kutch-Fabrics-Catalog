@@ -437,7 +437,7 @@ export default function BulkUpload({
         {items.map((item, idx) => (
           <button
             key={item.localId}
-            ref={(el) => (thumbnailRefs.current[idx] = el)}
+            ref={(el) => { thumbnailRefs.current[idx] = el; }}
             type="button"
             onClick={() => setCurrentIdx(idx)}
             className={clsx(

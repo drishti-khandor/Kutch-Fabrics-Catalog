@@ -2,13 +2,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Item } from "@/lib/types";
-import { MapPin, Tag } from "lucide-react";
+import { MapPin, Tag, Download, Trash2 } from "lucide-react";
 import clsx from "clsx";
 
 interface Props {
   item: Item;
   /** All colour variants for this product (including `item`). */
   variants?: Item[];
+  isAdmin?: boolean;
+  onDownload?: (item: Item) => void;
+  onDelete?: (item: Item) => void;
 }
 
 const SIZE_COLORS: Record<string, string> = {
@@ -28,8 +31,7 @@ function imgFor(item: Item): string | null {
   return null;
 }
 
-export default function ItemCard({ item, variants }: Props) {
-  // When multiple variants exist, let the user switch colour in-card
+export default function ItemCard({ item, variants, isAdmin, onDownload, onDelete }: Props) {
   const all = variants && variants.length > 1 ? variants : null;
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -38,7 +40,7 @@ export default function ItemCard({ item, variants }: Props) {
 
   return (
     <div className="item-card bg-white rounded-2xl border border-slate-100 overflow-hidden group">
-      {/* Image — links to active variant */}
+      {/* Image */}
       <Link href={`/item/${active.id}`} className="block">
         <div className="relative aspect-[3/4] bg-slate-50 overflow-hidden">
           {imgSrc ? (
@@ -52,7 +54,6 @@ export default function ItemCard({ item, variants }: Props) {
               <Tag size={40} />
             </div>
           )}
-          {/* Colour chip */}
           {active.color && (
             <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm text-xs font-medium text-slate-700 px-2 py-0.5 rounded-full border border-slate-200 shadow-sm">
               {active.color}
@@ -69,7 +70,7 @@ export default function ItemCard({ item, variants }: Props) {
           </h3>
         </Link>
 
-        {/* Colour swatches — only when there are multiple variants */}
+        {/* Colour swatches */}
         {all && (
           <div className="flex flex-wrap gap-1">
             {all.map((v, i) => (
@@ -113,6 +114,32 @@ export default function ItemCard({ item, variants }: Props) {
           <div className="flex items-center gap-1 text-[11px] text-slate-400">
             <MapPin size={10} />
             Rack {active.rack_location}
+          </div>
+        )}
+
+        {/* Admin actions — per file/variant */}
+        {isAdmin && (
+          <div className="flex items-center gap-1 pt-1 border-t border-slate-50">
+            {active.model_image_url && (
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); onDownload?.(active); }}
+                className="flex-1 flex items-center justify-center gap-1 py-1 text-[10px] text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                title="Download model photo"
+              >
+                <Download size={11} />
+                Download
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); onDelete?.(active); }}
+              className="flex-1 flex items-center justify-center gap-1 py-1 text-[10px] text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              title="Delete this variant"
+            >
+              <Trash2 size={11} />
+              Delete
+            </button>
           </div>
         )}
       </div>

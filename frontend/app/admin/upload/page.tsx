@@ -5,11 +5,14 @@ import { getCategories } from "@/lib/api";
 import { Category } from "@/lib/types";
 import SingleUpload from "./SingleUpload";
 import BulkUpload from "./BulkUpload";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Layers, LayoutGrid } from "lucide-react";
+
+type UploadMode = "saree-parts" | "bulk";
 
 export default function UploadPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadMode, setUploadMode] = useState<UploadMode | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -20,10 +23,20 @@ export default function UploadPage() {
     const imageFiles = Array.from(files)
       .filter((f) => f.type.startsWith("image/"))
       .slice(0, 50);
-    if (imageFiles.length > 0) setSelectedFiles(imageFiles);
+    if (imageFiles.length > 0) {
+      setUploadMode(null);
+      setSelectedFiles(imageFiles);
+    }
   };
 
-  const reset = () => setSelectedFiles([]);
+  const reset = () => {
+    setSelectedFiles([]);
+    setUploadMode(null);
+  };
+
+  // 2–3 files with no mode chosen yet → disambiguation
+  const needsDisambiguation =
+    selectedFiles.length >= 2 && selectedFiles.length <= 3 && uploadMode === null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -55,11 +68,84 @@ export default function UploadPage() {
             onChange={(e) => e.target.files && handleFiles(e.target.files)}
           />
         </div>
-      ) : selectedFiles.length === 1 ? (
-        /* ── Single upload ─────────────────────────────────── */
+      ) : needsDisambiguation ? (
+        /* ── Disambiguation: same saree vs different products ── */
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-700">
+                {selectedFiles.length} photos selected
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">How are these photos related?</p>
+            </div>
+            <button
+              onClick={reset}
+              className="text-xs text-slate-500 border border-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Change photos
+            </button>
+          </div>
+
+          {/* Thumbnails */}
+          <div className="flex gap-3">
+            {selectedFiles.map((f, i) => (
+              <img
+                key={i}
+                src={URL.createObjectURL(f)}
+                alt={`Photo ${i + 1}`}
+                className="w-24 h-24 rounded-xl object-cover border border-slate-100 shadow-sm"
+              />
+            ))}
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            {/* Option A: same saree */}
+            <button
+              type="button"
+              onClick={() => setUploadMode("saree-parts")}
+              className="group text-left border-2 border-slate-200 hover:border-purple-400 hover:bg-purple-50 rounded-2xl p-4 transition-all"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center shrink-0 transition-colors">
+                  <Layers size={18} className="text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Parts of the same saree</p>
+                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                    Pallu, blouse piece, or design detail — one product, AI uses all photos together
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            {/* Option B: different products */}
+            <button
+              type="button"
+              onClick={() => setUploadMode("bulk")}
+              className="group text-left border-2 border-slate-200 hover:border-brand-400 hover:bg-brand-50 rounded-2xl p-4 transition-all"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand-100 group-hover:bg-brand-200 flex items-center justify-center shrink-0 transition-colors">
+                  <LayoutGrid size={18} className="text-brand-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Different products</p>
+                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                    Colour variants or separate items — each gets its own catalog entry
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      ) : selectedFiles.length === 1 || uploadMode === "saree-parts" ? (
+        /* ── Single upload (or saree parts → SingleUpload) ─── */
         <SingleUpload
           categories={categories}
           initialFile={selectedFiles[0]}
+          initialExtraFiles={
+            uploadMode === "saree-parts" ? selectedFiles.slice(1) : undefined
+          }
           onReset={reset}
         />
       ) : (

@@ -154,6 +154,99 @@ async def preview_model_photo(
     }
 
 
+@router.post("/preview-model-multi")
+async def preview_model_photo_multi(
+    files: list[UploadFile] = File(...),
+    product_name: str = Form(""),
+    category_paths: str = Form(""),   # comma-separated
+    custom_prompt: str = Form(""),
+    product_id: str = Form(""),
+):
+    """
+    Generate a model/display photo from multiple source images (e.g. saree pallu + blouse + design detail).
+    Uploads result to S3 and returns the public URL.
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one file is required")
+
+    temp_paths: list[str] = []
+    try:
+        for file in files:
+            image_bytes = await file.read()
+            suffix = "." + (file.filename or "img.jpg").split(".")[-1]
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(image_bytes)
+                temp_paths.append(tmp.name)
+
+        paths = [p.strip() for p in category_paths.split(",") if p.strip()]
+
+        if custom_prompt.strip():
+            prompt = custom_prompt.strip()
+        else:
+            base_prompt = gemini.build_model_prompt(product_name, paths)
+            if len(temp_paths) > 1:
+                all_text = " ".join(paths + [product_name]).lower()
+                if "saree" in all_text or "sari" in all_text:
+                    n = len(temp_paths)
+                    multi_prefix = (
+                        f"IMPORTANT: You are given {n} separate close-up photos of the SAME saree, "
+                        "showing different sections (e.g. pallu design, body fabric pattern, blouse piece, border detail). "
+                        "Look at ALL the provided images together to fully understand the complete saree design. "
+                        "Your generated model photo must faithfully reproduce ALL visible parts: "
+                        "the exact pallu pattern draped over the left shoulder, the body fabric motifs, "
+                        "any blouse detail shown, and the border — exactly as they appear across all reference photos. "
+                        "Do NOT simplify, omit, or incorrectly combine any details from the photos.\n\n"
+                    )
+                    prompt = multi_prefix + base_prompt
+                else:
+                    prompt = base_prompt
+            else:
+                prompt = base_prompt
+
+        result = await gemini.generate_model_image_multi(temp_paths, prompt)
+    except Exception as exc:
+        logger.error("preview_model_photo_multi generation failed: %s: %s", type(exc).__name__, exc)
+        raise HTTPException(status_code=500, detail=f"Model generation failed: {exc}")
+    finally:
+        for path in temp_paths:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+
+    if not result:
+        raise HTTPException(
+            status_code=500,
+            detail="Model image generation failed — Gemini returned no image. Please try again.",
+        )
+
+    model_bytes, mime_type = result
+    logger.info(
+        "preview-model-multi: received %d bytes mime=%s magic=%s",
+        len(model_bytes), mime_type,
+        model_bytes[:4].hex() if model_bytes else "empty",
+    )
+
+    if product_id.strip():
+        loop = asyncio.get_running_loop()
+        model_bytes = await loop.run_in_executor(
+            None, apply_id_watermark_to_bytes, model_bytes, mime_type, product_id.strip()
+        )
+        mime_type = "image/png"
+        logger.info("Product ID badge applied (%s), size=%d bytes", product_id.strip(), len(model_bytes))
+
+    try:
+        url = await upload_model_image(model_bytes, mime_type)
+    except Exception as exc:
+        logger.error("S3 upload failed in preview_model_photo_multi: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to upload model image to S3: {exc}")
+
+    return {
+        "prompt": prompt,
+        "model_image_url": url,
+    }
+
+
 async def _stamp_badge_on_url(url: str, product_id: str) -> str:
     """
     Fetch an existing model image (public URL), stamp the product-ID corner badge,

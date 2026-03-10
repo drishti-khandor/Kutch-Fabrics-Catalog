@@ -339,6 +339,11 @@ def build_model_prompt(product_name: str, categories: list[str]) -> str:
             "Generate a professional Indian fashion catalog photograph of a beautiful Indian woman "
             "elegantly wearing this dupatta draped over both shoulders, "
             "full length cascading in front to display both ends, borders, embroidery, and tassels. "
+            "IMPORTANT — complementary outfit: carefully study the dupatta's colors, print, and style "
+            "from the image, then dress the model in the most stylish and harmonious kurta/suit underneath "
+            "— for example a rich printed dupatta pairs beautifully with a solid kurta in its deepest accent color; "
+            "a pastel dupatta pairs with a tonal or ivory kurta; a heavily embroidered dupatta pairs with "
+            "a minimal solid kurta so the dupatta remains the star. "
             "Full body visible, graceful standing pose. "
             + bg + faithful + pose
         )
@@ -358,8 +363,13 @@ def build_model_prompt(product_name: str, categories: list[str]) -> str:
         return (
             f"You are given a product image of a {mat}lehenga. "
             "Generate a professional Indian fashion catalog photograph of a beautiful Indian woman "
-            "wearing this exact lehenga with coordinating blouse and dupatta, "
-            "showing the full skirt flare, embroidery, and hem detail. Full body visible. "
+            "wearing this exact lehenga with a perfectly complementary blouse and dupatta — "
+            "study the lehenga's colors and embroidery carefully, then choose a blouse color that "
+            "either matches the border/highlight color or is a rich complementary tone "
+            "(e.g. deep red lehenga → gold or ivory blouse; royal blue lehenga → silver or ivory blouse; "
+            "pastel lehenga → matching tonal blouse in a slightly deeper shade). "
+            "Dupatta should coordinate in a harmonious tone. "
+            "Show the full skirt flare, embroidery, and hem detail. Full body visible. "
             + bg + faithful + pose
         )
 
@@ -370,6 +380,11 @@ def build_model_prompt(product_name: str, categories: list[str]) -> str:
             f"You are given a product image of a {mat}{length}kurti/kurta. "
             "Generate a professional Indian fashion catalog photograph of a beautiful Indian woman "
             "wearing this exact kurti, showing the complete garment collar to hem. "
+            "IMPORTANT — complementary bottom: study the kurti's colors and style from the image, "
+            "then pair it with the most flattering and harmonious bottom — for example a printed or "
+            "colorful kurti pairs best with solid churidar/leggings in its deepest accent color or "
+            "a clean white/ivory; a heavily embroidered kurti pairs with a minimal solid palazzo; "
+            "a casual kurti pairs with well-fitted straight-cut pants in a complementary neutral. "
             "Natural confident standing pose, front-facing." + fabric_hero_note + " "
             + bg + faithful + pose
         )
@@ -379,8 +394,13 @@ def build_model_prompt(product_name: str, categories: list[str]) -> str:
         return (
             f"You are given a product image of a {mat}saree blouse. "
             "Generate a professional Indian fashion catalog photograph of a beautiful Indian woman "
-            "wearing this blouse styled with a coordinating plain saree so the blouse is the hero. "
-            "Both front and back detail clearly visible. "
+            "wearing this blouse as the hero piece, styled with the most complementary saree — "
+            "study the blouse's colors, embroidery, and embellishments from the image, then choose "
+            "a saree that makes the blouse shine: a richly embroidered or printed blouse pairs with "
+            "a plain/solid saree in a harmonious tone; a heavily embellished blouse pairs with a "
+            "deep jewel-toned silk saree; a minimal blouse pairs with a statement saree where "
+            "the blouse color echoes the saree's border or pallu. "
+            "Both front and back detail of the blouse clearly visible. "
             + bg + faithful + pose
         )
 
@@ -396,7 +416,14 @@ def build_model_prompt(product_name: str, categories: list[str]) -> str:
         return (
             f"You are given a product image of {mat}{garment_word}. "
             "Generate a professional fashion catalog photograph of a beautiful woman "
-            "wearing this exact bottom wear, paired with a simple plain neutral top. "
+            "wearing this exact bottom wear as the hero piece. "
+            "IMPORTANT — complementary top: carefully study the bottom's colors, print, and style "
+            "from the image, then pair it with the most stylish and harmonious top — "
+            "a bold or printed bottom looks best with a clean solid top in its deepest accent color "
+            "or a crisp white/ivory; a pastel bottom pairs with a tonal or white fitted top; "
+            "a richly patterned bottom pairs with a plain top that echoes one accent color from the pattern; "
+            "a dark/solid bottom pairs with a complementary colored or subtly embroidered top. "
+            "The top should be fitted, elegant, and never distract from the bottom. "
             "Full body waist-to-feet visible, natural pose." + fabric_hero_note + " "
             + bg + faithful + pose
         )
@@ -406,7 +433,13 @@ def build_model_prompt(product_name: str, categories: list[str]) -> str:
         return (
             f"You are given a product image of a {mat}top/shirt. "
             "Generate a professional fashion catalog photograph of a beautiful woman "
-            "wearing this exact top, paired with simple neutral bottoms. "
+            "wearing this exact top as the hero piece. "
+            "IMPORTANT — complementary bottom: carefully study the top's colors, print, and style "
+            "from the image, then pair it with the most stylish and harmonious bottom — "
+            "a bold or printed top looks best with solid pants/trousers in its deepest accent color "
+            "or a clean white/ivory/black; a pastel top pairs with tonal or neutral well-fitted trousers; "
+            "a minimal solid top pairs with a subtly textured or complementary-colored bottom; "
+            "a heavily embellished top pairs with a plain, understated bottom that lets the top shine. "
             "Full upper body clearly visible, natural standing pose." + fabric_hero_note + " "
             + bg + faithful + pose
         )
@@ -430,16 +463,39 @@ def build_model_prompt(product_name: str, categories: list[str]) -> str:
             + bg + faithful + pose
         )
 
-    # ── Unstitched fabric (no garment type detected) ──────
+    # ── Unstitched fabric (no garment type detected / Fabrics/* category) ──────
+    fabric_type = mat.strip() or "unstitched"
     return (
-        f"You are given a product image of a {mat}fabric/textile. "
-        "Generate a professional fabric catalog photograph of a beautiful Indian woman "
-        "elegantly holding and displaying this unstitched fabric, "
-        "letting it drape and cascade naturally from her hands to show its full length, "
-        "both sides, sheen, texture, and surface print. "
-        "The fabric should fill most of the frame so pattern and quality are clearly visible." +
-        fabric_hero_note + " "
-        + bg + faithful + pose
+        f"You are given a product image of a {fabric_type} fabric/textile. "
+        "Generate a professional fabric catalog still-life photograph for a premium Indian heritage textile brand. "
+        "\n\nCOMPOSITION: "
+        "A natural raw-wood crate or slatted wooden box sits right of centre on a clean white matte surface. "
+        "The fabric cascades dramatically from the top of the crate, spreading and draping to the left, "
+        "pooling softly on the white surface in rich natural folds — "
+        "laid out so the complete repeat motif, border designs, and edge details are ALL clearly visible. "
+        "Beside the crate, a neatly rolled bolt of the same fabric stands upright, "
+        "clearly revealing the full width, repeat pattern, and selvedge. "
+        "Two or three rustic ceramic or terracotta jars of varying heights sit on top of and beside the crate "
+        "as complementary props — their earthy tones chosen to harmonise with the fabric's palette. "
+        "\n\nFABRIC FIDELITY: "
+        + faithful +
+        "Every repeat motif, border detail, colour, surface sheen, weave texture, and any embellishments "
+        "must be sharp and clearly visible. Show the fabric in multiple states — draped, folded, and rolled — "
+        "so the buyer can appreciate the complete design and quality of the cloth. "
+        "\n\nCOLOUR HARMONY: "
+        "The backdrop, props, and surface must complement and enhance the fabric's palette — not compete with it. "
+        "For rich earth-toned or Ajrakh/block-printed fabrics: warm charcoal or dark grey backdrop, "
+        "earthy wood and terracotta props. "
+        "For bold saturated prints: neutral mid-grey backdrop. "
+        "For pastels and naturals: warm cream or off-white backdrop with light wood. "
+        "For silks and velvets: deep jewel-toned or warm charcoal backdrop to make the fabric glow. "
+        "\n\nLIGHTING: "
+        "Soft directional studio key light from upper-left with a gentle fill light. "
+        "The light rakes across the fabric surface to reveal its texture, weave, and dimensionality. "
+        "No harsh shadows. The fabric's colours appear vivid, rich, and true-to-life. "
+        "\n\nMOOD: "
+        "Artisanal, curated, premium Indian textile catalog — Fabindia or Jaypore editorial quality. "
+        "Photorealistic, 8K detail, every thread sharp."
     )
 
 
@@ -519,6 +575,75 @@ async def generate_model_image(
     prompt = build_model_prompt(product_name, categories)
     result = await generate_model_image_with_prompt(image_path, prompt)
     return result[0] if result else None
+
+
+# ── Generate AI model image from multiple source images ────
+async def generate_model_image_multi(
+    image_paths: list[str],
+    prompt: str,
+) -> tuple[bytes, str] | None:
+    """
+    Generate a styled model/display photo from multiple source images.
+    Used for sarees where pallu, blouse piece, and body-fabric detail are separate photos.
+    Returns (image_bytes, mime_type) or None if generation fails.
+    """
+    client = get_client()
+
+    image_parts: list = []
+    for path in image_paths:
+        try:
+            from PIL import Image as _PILImage
+            with _PILImage.open(path) as _img:
+                _img.verify()
+        except Exception as exc:
+            logger.error("Skipping invalid image (%s): %s", path, exc)
+            continue
+        img_bytes = Path(path).read_bytes()
+        ext = Path(path).suffix.lower().lstrip(".")
+        mime = f"image/{'jpeg' if ext in ('jpg', 'jpeg') else ext}"
+        image_parts.append(types.Part.from_bytes(data=img_bytes, mime_type=mime))
+
+    if not image_parts:
+        logger.error("generate_model_image_multi: no valid images to process")
+        return None
+
+    logger.info(
+        "Generating model image from %d source images — prompt_snippet=%.120s",
+        len(image_parts), prompt,
+    )
+
+    for modalities in (["IMAGE"], ["TEXT", "IMAGE"]):
+        try:
+            response = client.models.generate_content(
+                model=settings.gemini_image_model,
+                contents=[*image_parts, prompt],
+                config=types.GenerateContentConfig(
+                    response_modalities=modalities,
+                ),
+            )
+            for part in response.candidates[0].content.parts:
+                if part.inline_data and part.inline_data.mime_type.startswith("image/"):
+                    out_mime = part.inline_data.mime_type
+                    raw = part.inline_data.data
+                    img_bytes = bytes(raw) if not isinstance(raw, bytes) else raw
+                    logger.info(
+                        "Multi-image model photo generated — modalities=%s mime=%s size=%d bytes magic=%s",
+                        modalities, out_mime, len(img_bytes),
+                        img_bytes[:4].hex() if img_bytes else "empty",
+                    )
+                    return img_bytes, out_mime
+            logger.warning(
+                "No image part in multi-image response (modalities=%s). Parts: %s",
+                modalities,
+                [getattr(p, "text", "<binary>")[:80] for p in response.candidates[0].content.parts],
+            )
+        except Exception as exc:
+            logger.error(
+                "generate_model_image_multi failed (modalities=%s): %s: %s",
+                modalities, type(exc).__name__, exc,
+            )
+
+    return None
 
 
 # ── Visual search: embed an uploaded query image ───────────

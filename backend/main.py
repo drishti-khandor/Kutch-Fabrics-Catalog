@@ -13,7 +13,7 @@ logging.basicConfig(
 
 from database import init_db
 from config import get_settings
-from routers import categories, items, search, upload
+from routers import categories, items, search, upload, auth
 
 settings = get_settings()
 
@@ -30,10 +30,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_raw_origins = os.getenv("CORS_ORIGINS", "")
+_cors_origins: list[str] = (
+    [o.strip() for o in _raw_origins.split(",") if o.strip()]
+    if _raw_origins
+    else ["*"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://frontend:3000"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -44,6 +51,7 @@ catalog_path.mkdir(parents=True, exist_ok=True)
 app.mount("/images", StaticFiles(directory=str(catalog_path)), name="images")
 
 # Routers
+app.include_router(auth.router)
 app.include_router(categories.router)
 app.include_router(items.router)
 app.include_router(search.router)

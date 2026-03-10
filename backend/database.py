@@ -21,7 +21,7 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        from models import Category, Item  # noqa
+        from models import Category, Item, User  # noqa
         await conn.run_sync(Base.metadata.create_all)
         # Add extra_category_paths column to existing databases that pre-date this field
         await conn.execute(text(

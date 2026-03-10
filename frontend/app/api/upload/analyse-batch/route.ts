@@ -6,7 +6,8 @@ export const maxDuration = 300;
 export async function POST(request: NextRequest) {
   const body = await request.arrayBuffer();
 
-  const res = await fetch("http://backend:8000/api/upload/analyse-batch", {
+  const BACKEND = process.env.BACKEND_URL || "http://backend:8000";
+  const res = await fetch(`${BACKEND}/api/upload/analyse-batch`, {
     method: "POST",
     headers: {
       "content-type": request.headers.get("content-type") ?? "multipart/form-data",

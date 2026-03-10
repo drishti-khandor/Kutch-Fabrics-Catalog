@@ -5,7 +5,7 @@
  * that the Gemini text-analysis call (which can take 30–60 s with Pro models)
  * isn't killed by the rewrite-proxy's built-in socket timeout.
  */
-const BACKEND = "http://backend:8000";
+const BACKEND = process.env.BACKEND_URL || "http://backend:8000";
 
 export async function POST(request: Request) {
   try {

@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getItem, updateItem, deleteItem, regenerateModelPhoto, getItemsByProductId } from "@/lib/api";
+import { getItem, updateItem, deleteItem, downloadModelPhoto, regenerateModelPhoto, getItemsByProductId } from "@/lib/api";
 import { Item } from "@/lib/types";
 import SizeEditor from "@/components/SizeEditor";
-import { ArrowLeft, MapPin, Tag, Trash2, Save, Loader2, Sparkles, Palette } from "lucide-react";
+import { ArrowLeft, MapPin, Tag, Trash2, Save, Loader2, Sparkles, Palette, Download } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function ItemDetailPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [regenProductId, setRegenProductId] = useState("");
   const [regenMsg, setRegenMsg] = useState("");
+  const { user } = useAuth();
 
   useEffect(() => {
     getItem(Number(id)).then((i) => {
@@ -183,49 +185,70 @@ export default function ItemDetailPage() {
             </div>
           )}
 
-          {/* Generate AI Model Photo */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
-            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-              <Sparkles size={14} className="text-brand-500" /> AI Model Photo
-            </h3>
-            <p className="text-xs text-slate-400">
-              Replace this image with a Gemini-generated model photo.
-              Refresh the page after ~30 seconds to see it.
-            </p>
-            <div className="flex gap-2 items-center">
-              <input
-                value={regenProductId}
-                onChange={(e) => setRegenProductId(e.target.value)}
-                placeholder={`Product ID (default: ${item.id})`}
-                className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-              <button
-                onClick={handleRegenerate}
-                disabled={regenerating}
-                className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-60 whitespace-nowrap"
-              >
-                {regenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                {regenerating ? "Queuing…" : "Generate"}
-              </button>
-            </div>
-            {regenMsg && (
-              <p className={`text-xs ${regenMsg.startsWith("Error") ? "text-red-500" : "text-emerald-600"}`}>
-                {regenMsg}
-              </p>
-            )}
-          </div>
+          {/* Admin-only actions */}
+          {user?.is_admin && (
+            <>
+              {/* Download model photo */}
+              {item.model_image_url && (
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 mb-3">
+                    <Download size={14} className="text-emerald-500" /> AI Model Photo
+                  </h3>
+                  <button
+                    onClick={() => downloadModelPhoto(item.id)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
+                  >
+                    <Download size={14} />
+                    Download Model Photo
+                  </button>
+                </div>
+              )}
 
-          {/* Delete */}
-          <div className="pt-4 border-t border-slate-100">
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors disabled:opacity-60"
-            >
-              {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-              Delete Item
-            </button>
-          </div>
+              {/* Generate AI Model Photo */}
+              <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
+                <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-brand-500" /> Regenerate AI Model Photo
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Replace this image with a Gemini-generated model photo.
+                  Refresh the page after ~30 seconds to see it.
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    value={regenProductId}
+                    onChange={(e) => setRegenProductId(e.target.value)}
+                    placeholder={`Product ID (default: ${item.id})`}
+                    className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={regenerating}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-60 whitespace-nowrap"
+                  >
+                    {regenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {regenerating ? "Queuing…" : "Generate"}
+                  </button>
+                </div>
+                {regenMsg && (
+                  <p className={`text-xs ${regenMsg.startsWith("Error") ? "text-red-500" : "text-emerald-600"}`}>
+                    {regenMsg}
+                  </p>
+                )}
+              </div>
+
+              {/* Delete */}
+              <div className="pt-4 border-t border-slate-100">
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors disabled:opacity-60"
+                >
+                  {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  Delete Item
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

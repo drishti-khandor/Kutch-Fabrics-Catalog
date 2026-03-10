@@ -5,7 +5,7 @@
  * rewrite proxy times out before that, killing the connection.  This route
  * handler runs without an enforced timeout on self-hosted Next.js.
  */
-const BACKEND = "http://backend:8000";
+const BACKEND = process.env.BACKEND_URL || "http://backend:8000";
 
 export async function POST(request: Request) {
   try {

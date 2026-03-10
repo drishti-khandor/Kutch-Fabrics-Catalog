@@ -14,7 +14,7 @@ export default function SearchBar({ onVisualSearch, defaultValue = "" }: Props) 
   const [query, setQuery] = useState(defaultValue);
   const [listening, setListening] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const recogRef = useRef<SpeechRecognition | null>(null);
+  const recogRef = useRef<any>(null);
 
   const doSearch = (q: string) => {
     if (!q.trim()) return;
@@ -35,7 +35,7 @@ export default function SearchBar({ onVisualSearch, defaultValue = "" }: Props) 
     recog.lang = "en-IN";
     recog.continuous = false;
     recog.interimResults = false;
-    recog.onresult = (e: SpeechRecognitionEvent) => {
+    recog.onresult = (e: any) => {
       const transcript = e.results[0][0].transcript;
       setQuery(transcript);
       setListening(false);

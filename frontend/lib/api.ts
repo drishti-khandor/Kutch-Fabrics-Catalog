@@ -55,6 +55,39 @@ export const updateItem = (id: number, data: Partial<Item>) =>
 export const deleteItem = (id: number) =>
   req<{ ok: boolean }>(`/items/${id}`, { method: "DELETE" });
 
+export const bulkDeleteItems = (ids: number[]) =>
+  req<{ ok: boolean; deleted: number }>("/items/bulk-delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+
+export const downloadModelPhoto = (id: number) => {
+  const a = document.createElement("a");
+  a.href = `${BASE}/items/${id}/model-photo-download`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
+export const downloadModelPhotosZip = async (ids?: number[], categoryPath?: string) => {
+  const res = await fetch(`${BASE}/items/model-photos-zip`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, category_path: categoryPath }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "model-photos.zip";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 export const getItemsByProductId = (productId: string) =>
   req<Item[]>(`/items/by-product/${encodeURIComponent(productId)}`);
 
@@ -105,6 +138,24 @@ export const previewModelImage = async (
   if (customPrompt) fd.append("custom_prompt", customPrompt);
   if (productId) fd.append("product_id", productId);
   const res = await fetch(`${BASE}/upload/preview-model`, { method: "POST", body: fd });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+};
+
+export const previewModelImageMulti = async (
+  files: File[],
+  productName: string,
+  categoryPaths: string[],
+  customPrompt?: string,
+  productId?: string,
+): Promise<{ prompt: string; model_image_url: string }> => {
+  const fd = new FormData();
+  files.forEach((f) => fd.append("files", f));
+  fd.append("product_name", productName);
+  fd.append("category_paths", categoryPaths.join(","));
+  if (customPrompt) fd.append("custom_prompt", customPrompt);
+  if (productId) fd.append("product_id", productId);
+  const res = await fetch(`${BASE}/upload/preview-model-multi`, { method: "POST", body: fd });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 };

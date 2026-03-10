@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Category, AIAnalysis } from "@/lib/types";
-import { analyseImage, previewModelImage, uploadItem } from "@/lib/api";
+import { analyseImage, previewModelImage, previewModelImageMulti, uploadItem } from "@/lib/api";
 import SizeEditor from "@/components/SizeEditor";
 import CategoryPicker, { flattenCats } from "./CategoryPicker";
 import {
@@ -53,6 +53,9 @@ interface ColorVariant {
   saving: boolean;
   saved: boolean;
   error: string;
+  /** Extra photos of the same saree (pallu, blouse, design detail) — used only for AI generation */
+  sareeExtraPhotos: File[];
+  sareeExtraPreviews: string[];
 }
 
 function makeVariant(file: File): ColorVariant {
@@ -68,6 +71,8 @@ function makeVariant(file: File): ColorVariant {
     saving: false,
     saved: false,
     error: "",
+    sareeExtraPhotos: [],
+    sareeExtraPreviews: [],
   };
 }
 
@@ -82,6 +87,9 @@ interface VariantCardProps {
   onRegenerate: () => void;
   onPromptChange: (p: string) => void;
   onSelectVersion: (idx: number) => void;
+  isSaree: boolean;
+  onAddSareePhoto: (file: File) => void;
+  onRemoveSareePhoto: (photoIdx: number) => void;
 }
 
 function VariantCard({
@@ -93,7 +101,11 @@ function VariantCard({
   onRegenerate,
   onPromptChange,
   onSelectVersion,
+  isSaree,
+  onAddSareePhoto,
+  onRemoveSareePhoto,
 }: VariantCardProps) {
+  const sareePhotoInputRef = useRef<HTMLInputElement>(null);
   const hasModel = variant.model.urls.length > 0;
   const currentModelUrl = variant.model.urls[variant.model.selectedIdx];
 
@@ -143,6 +155,62 @@ function VariantCard({
               )}
             </div>
           </div>
+
+          {/* Saree extra part photos */}
+          {isSaree && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 mb-1.5">
+                Saree Part Photos
+                <span className="font-normal text-slate-300"> — up to 2 more</span>
+              </p>
+              <div className="flex flex-wrap gap-2 mb-1.5">
+                {variant.sareeExtraPreviews.map((preview, i) => (
+                  <div key={i} className="relative w-16 h-16 shrink-0">
+                    <img
+                      src={preview}
+                      alt={`Saree part ${i + 1}`}
+                      className="w-full h-full rounded-lg object-cover border border-purple-100"
+                    />
+                    {!variant.saved && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveSareePhoto(i)}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                      >
+                        <X size={8} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {variant.sareeExtraPhotos.length < 2 && !variant.saved && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => sareePhotoInputRef.current?.click()}
+                      className="w-16 h-16 border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center gap-0.5 text-slate-400 hover:border-purple-300 hover:text-purple-500 transition-colors shrink-0"
+                    >
+                      <Plus size={14} />
+                      <span className="text-[9px] font-medium">Add</span>
+                    </button>
+                    <input
+                      ref={sareePhotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) onAddSareePhoto(file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+              <p className="text-[10px] text-slate-400 leading-tight">
+                Add pallu, blouse piece, or design detail for better AI generation
+              </p>
+            </div>
+          )}
 
           {/* Model photo (auto-appears once generation starts) */}
           {(hasModel || variant.model.generating) && (
@@ -286,10 +354,13 @@ function VariantCard({
 export default function SingleUpload({
   categories,
   initialFile,
+  initialExtraFiles,
   onReset,
 }: {
   categories: Category[];
   initialFile: File;
+  /** Pre-loaded saree part photos (pallu, blouse, etc.) — used for AI generation from the start */
+  initialExtraFiles?: File[];
   onReset: () => void;
 }) {
   // ── Shared product fields ──────────────────────────────────
@@ -311,7 +382,14 @@ export default function SingleUpload({
   useEffect(() => { categoriesRef.current = categories; }, [categories]);
 
   // ── Variant state ──────────────────────────────────────────
-  const [variants, setVariants] = useState<ColorVariant[]>(() => [makeVariant(initialFile)]);
+  const [variants, setVariants] = useState<ColorVariant[]>(() => {
+    const first = makeVariant(initialFile);
+    if (initialExtraFiles && initialExtraFiles.length > 0) {
+      first.sareeExtraPhotos = initialExtraFiles;
+      first.sareeExtraPreviews = initialExtraFiles.map((f) => URL.createObjectURL(f));
+    }
+    return [first];
+  });
   const variantsRef = useRef<ColorVariant[]>([]);
   useEffect(() => { variantsRef.current = variants; }, [variants]);
 
@@ -345,6 +423,7 @@ export default function SingleUpload({
     const name = nameOverride ?? productNameRef.current;
     const customPrompt = variantsRef.current[idx]?.model.editablePrompt.trim() || undefined;
     const pid = productIdRef.current || undefined;
+    const extraPhotos = variantsRef.current[idx]?.sareeExtraPhotos ?? [];
 
     setVariants((prev) => {
       const next = [...prev];
@@ -354,7 +433,10 @@ export default function SingleUpload({
     });
 
     try {
-      const result = await previewModelImage(variant.file, name, paths, customPrompt, pid);
+      const allFiles = extraPhotos.length > 0 ? [variant.file, ...extraPhotos] : [variant.file];
+      const result = allFiles.length > 1
+        ? await previewModelImageMulti(allFiles, name, paths, customPrompt, pid)
+        : await previewModelImage(variant.file, name, paths, customPrompt, pid);
       setVariants((prev) => {
         const next = [...prev];
         if (!next[idx]) return prev;
@@ -456,6 +538,37 @@ export default function SingleUpload({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Add / remove saree part photos ────────────────────────
+  const addSareePhoto = useCallback((variantIdx: number, file: File) => {
+    const preview = URL.createObjectURL(file);
+    // Update ref FIRST so generateModel reads the updated extra photos
+    const current = variantsRef.current[variantIdx];
+    if (!current || current.sareeExtraPhotos.length >= 2) return;
+    const updated: ColorVariant = {
+      ...current,
+      sareeExtraPhotos: [...current.sareeExtraPhotos, file],
+      sareeExtraPreviews: [...current.sareeExtraPreviews, preview],
+    };
+    variantsRef.current = variantsRef.current.map((v, i) => i === variantIdx ? updated : v);
+    setVariants([...variantsRef.current]);
+    generateModel(variantIdx);
+  }, [generateModel]);
+
+  const removeSareePhoto = useCallback((variantIdx: number, photoIdx: number) => {
+    setVariants((prev) => {
+      const next = [...prev];
+      if (!next[variantIdx]) return prev;
+      const v = next[variantIdx];
+      next[variantIdx] = {
+        ...v,
+        sareeExtraPhotos: v.sareeExtraPhotos.filter((_, i) => i !== photoIdx),
+        sareeExtraPreviews: v.sareeExtraPreviews.filter((_, i) => i !== photoIdx),
+      };
+      variantsRef.current = next;
+      return next;
+    });
+  }, []);
+
   // ── Add more colour variants ───────────────────────────────
   const addColorVariants = useCallback((files: FileList | File[]) => {
     const newFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
@@ -551,6 +664,16 @@ export default function SingleUpload({
   }
 
   const unsavedCount = variants.filter((v) => !v.saved).length;
+
+  const flat = flattenCats(categories);
+  const isSaree =
+    // Category-based detection (after AI analysis)
+    categoryIds.some((id) => {
+      const cat = flat.find((c) => c.id === id);
+      return (cat?.path ?? "").toLowerCase().startsWith("sarees");
+    }) ||
+    // Or: extra photos already loaded (saree-parts mode from disambiguation)
+    variants.some((v) => v.sareeExtraPhotos.length > 0);
 
   return (
     <div className="space-y-5">
@@ -704,6 +827,9 @@ export default function SingleUpload({
                 return next;
               })
             }
+            isSaree={isSaree}
+            onAddSareePhoto={(file) => addSareePhoto(idx, file)}
+            onRemoveSareePhoto={(photoIdx) => removeSareePhoto(idx, photoIdx)}
           />
         ))}
       </div>

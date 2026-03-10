@@ -86,6 +86,41 @@ class SearchResult(BaseModel):
     total: int
 
 
+# ── Auth ───────────────────────────────────────────────────
+class SignupRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    is_admin: bool
+
+    class Config:
+        from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    token: str
+    user: UserOut
+
+
+# ── Bulk Operations ────────────────────────────────────────
+class BulkDeleteRequest(BaseModel):
+    ids: List[int]
+
+
+class ModelPhotosZipRequest(BaseModel):
+    ids: Optional[List[int]] = None
+    category_path: Optional[str] = None
+
+
 # ── AI Analysis ────────────────────────────────────────────
 class AIAnalysisResult(BaseModel):
     product_name: str
