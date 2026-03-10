@@ -179,7 +179,10 @@ export default function BulkUpload({
               color: group.colors[posInGroup] ?? "",
               description: group.description,
               tags: group.tags.join(", "),
-              categoryIds: catIds,
+              // Preserve user-selected category if already set
+              categoryIds: itemsRef.current[itemIdx]?.categoryIds?.length
+                ? itemsRef.current[itemIdx].categoryIds
+                : catIds,
               productId: groupPid,
             };
           });
@@ -211,7 +214,10 @@ export default function BulkUpload({
               color: ai.color,
               description: ai.description,
               tags: ai.tags.join(", "),
-              categoryIds: match ? [match.id] : [],
+              // Preserve user-selected category if already set
+              categoryIds: itemsRef.current[idx]?.categoryIds?.length
+                ? itemsRef.current[idx].categoryIds
+                : (match ? [match.id] : []),
             };
           } catch {
             updatedItems[idx] = { ...updatedItems[idx], analysing: false, analysed: true };
@@ -517,6 +523,7 @@ export default function BulkUpload({
                       </div>
                     )}
                   </div>
+
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-400 mb-1.5">Original</p>

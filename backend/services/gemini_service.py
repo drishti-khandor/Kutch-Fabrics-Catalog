@@ -278,9 +278,18 @@ def build_model_prompt(product_name: str, categories: list[str]) -> str:
     mat         = material + " " if material else ""   # safe prefix
 
     faithful = (
-        "Reproduce the item's exact colors, textures, surface patterns, prints, and "
-        "embellishments faithfully from the input image — do not alter the design in any way. "
-        "The product must look exactly as it does in real life. "
+        "CRITICAL — STRICT FABRIC FIDELITY: Reproduce ONLY the exact colors, textures, surface "
+        "patterns, prints, and embellishments that are EXPLICITLY VISIBLE in the provided "
+        "reference photo(s). "
+        "Do NOT add, invent, extrapolate, or hallucinate ANY design elements — including but not "
+        "limited to: borders (golden, metallic, contrasting, or any color), zari or metallic "
+        "accents/weaving, embroidery, mirror-work, beading, trims, or decorative edging — that "
+        "are not clearly and explicitly shown in the reference image(s). "
+        "If any part of the garment is not visible in the reference photo, keep that area as a "
+        "plain, minimal continuation of the base color visible in the reference — NO added borders, "
+        "NO decorative elements, NO embellishments on unseen areas. "
+        "WHEN IN DOUBT ABOUT ANY DESIGN ELEMENT: OMIT IT. "
+        "The product must look exactly as it does in the reference — nothing added, nothing removed. "
     )
     bg = (
         "Background: a rich, atmospheric studio setting — deep warm charcoal or soft off-white "
@@ -324,11 +333,22 @@ def build_model_prompt(product_name: str, categories: list[str]) -> str:
     # ── Saree ─────────────────────────────────────────────
     if is_saree:
         return (
-            f"You are given a product image of a {mat}saree. "
-            "Generate a professional Indian fashion catalog photograph of a beautiful Indian woman "
-            "gracefully wearing this exact saree in a classic Nivi drape. "
-            "Show the complete saree: body fabric, border, and pallu draped over the left shoulder. "
-            "Natural full-body front-facing pose with a gentle side turn. "
+            f"You are given a product reference photo of a {mat}saree. "
+            "Generate a professional Indian fashion catalog photo of a beautiful Indian woman "
+            "wearing this saree in a classic Nivi drape. "
+            "\n\nSAREE DRAPE ANATOMY — follow this exactly:\n"
+            "• BODY FABRIC: The continuous repeat pattern of the main fabric. "
+            "It covers the torso wrap, waist pleats, and the full draped length down to the floor. "
+            "The body fabric must look consistent and even throughout — it is the dominant visual.\n"
+            "• PALLU: The decorative end section (~18–24 inches) draped ONLY over the LEFT shoulder "
+            "and falling down the back. The pallu may have a denser motif arrangement or a decorative "
+            "border — but it appears ONLY at the shoulder drape, NOWHERE ELSE.\n"
+            "• The front pleats show the body fabric pattern.\n"
+            "• The hem at the feet shows the body fabric pattern.\n"
+            "\n\nCRITICAL RULE: Do NOT spread or tile the pallu motifs or border design across "
+            "the body of the saree. Any decorative end elements are STRICTLY confined to the "
+            "pallu drape over the left shoulder.\n"
+            "Natural full-body front-facing pose, complete head-to-toe visible. "
             + bg + faithful + pose
         )
 
@@ -644,6 +664,77 @@ async def generate_model_image_multi(
             )
 
     return None
+
+
+# ── Review a generated image against source photos ─────────
+async def review_generated_image(
+    original_paths: list[str],
+    generated_bytes: bytes,
+    generated_mime: str,
+) -> dict:
+    """
+    Quality-control check: compare the AI-generated catalog image against the
+    original product reference photo(s) and detect any hallucinated design elements.
+
+    Returns {"passed": bool, "issues": str}
+    On any failure, returns {"passed": True, "issues": ""} so it never blocks the flow.
+    """
+    client = get_client()
+
+    contents: list = []
+    for i, path in enumerate(original_paths):
+        try:
+            img_bytes = Path(path).read_bytes()
+            ext = Path(path).suffix.lower().lstrip(".")
+            mime = f"image/{'jpeg' if ext in ('jpg', 'jpeg') else ext}"
+            contents.append(f"Reference photo {i + 1} (original product):")
+            contents.append(types.Part.from_bytes(data=img_bytes, mime_type=mime))
+        except Exception as exc:
+            logger.warning("review_generated_image: could not read reference %s: %s", path, exc)
+
+    if not contents:
+        return {"passed": True, "issues": ""}
+
+    contents.append("Generated catalog image (to review):")
+    contents.append(types.Part.from_bytes(data=generated_bytes, mime_type=generated_mime))
+    contents.append(
+        "You are a strict quality-control reviewer for a fashion catalog.\n"
+        "Compare the GENERATED catalog image against the REFERENCE product photo(s).\n"
+        "Your only job is to detect HALLUCINATED design elements — elements present in the "
+        "generated image that are NOT present in any reference photo.\n\n"
+        "Check specifically for:\n"
+        "1. Borders (golden, metallic, contrasting-color, zari, or any decorative border stripe) "
+        "not visible in the reference\n"
+        "2. Metallic/zari weaving or sheen on areas where the reference shows a plain fabric\n"
+        "3. Embellishments (embroidery, mirror-work, beading, sequins) not in the reference\n"
+        "4. Pallu/end-piece motifs appearing on the body fabric, hem, or any area other than "
+        "the pallu draped over the shoulder\n"
+        "5. Additional colors or color-blocks not present in the reference\n\n"
+        "Respond with JSON only — no markdown, no explanation outside the JSON:\n"
+        '{"passed": true, "issues": ""}\n'
+        "— if the generated image faithfully reproduces only what is in the reference.\n"
+        '{"passed": false, "issues": "specific description e.g. golden border added at hem; '
+        'pallu pattern repeated at bottom of saree"}\n'
+        "— if hallucinated elements are found.\n"
+        "Be precise and specific about what was added."
+    )
+
+    try:
+        response = client.models.generate_content(
+            model=settings.gemini_text_model,
+            contents=contents,
+        )
+        raw = response.text.strip()
+        raw = re.sub(r"^```[a-z]*\n?", "", raw)
+        raw = re.sub(r"\n?```$", "", raw)
+        result = json.loads(raw)
+        passed = bool(result.get("passed", True))
+        issues = result.get("issues", "")
+        logger.info("Image review result: passed=%s issues=%s", passed, issues)
+        return {"passed": passed, "issues": issues}
+    except Exception as exc:
+        logger.error("review_generated_image failed: %s: %s", type(exc).__name__, exc)
+        return {"passed": True, "issues": ""}
 
 
 # ── Visual search: embed an uploaded query image ───────────

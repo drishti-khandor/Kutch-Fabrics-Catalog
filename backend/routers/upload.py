@@ -193,8 +193,11 @@ async def preview_model_photo_multi(
                         "showing different sections (e.g. pallu design, body fabric pattern, blouse piece, border detail). "
                         "Look at ALL the provided images together to fully understand the complete saree design. "
                         "Your generated model photo must faithfully reproduce ALL visible parts: "
-                        "the exact pallu pattern draped over the left shoulder, the body fabric motifs, "
+                        "the exact pallu pattern draped ONLY over the left shoulder, the body fabric motifs, "
                         "any blouse detail shown, and the border — exactly as they appear across all reference photos. "
+                        "CRITICAL: The pallu design must appear ONLY on the pallu section draped over the shoulder — "
+                        "do NOT repeat pallu motifs anywhere else (body fabric, hem, border, or pleats). "
+                        "Do NOT add borders, metallic/zari trims, or embellishments not clearly shown in the reference photos. "
                         "Do NOT simplify, omit, or incorrectly combine any details from the photos.\n\n"
                     )
                     prompt = multi_prefix + base_prompt

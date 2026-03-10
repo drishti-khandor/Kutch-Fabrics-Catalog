@@ -42,6 +42,7 @@ async def init_db():
             "CREATE INDEX IF NOT EXISTS ix_items_product_id ON items (product_id)"
         ))
     await _seed_categories()
+    await _migrate_saree_categories()
 
 
 async def _seed_categories():
@@ -60,8 +61,8 @@ async def _seed_categories():
                 "Kurtis": ["Short Kurti", "Long Kurti", "Anarkali"],
                 "": ["Tops", "Bottoms", "Dresses", "Jumpsuits", "Saree Blouses"],
             },
-            "Sarees": ["Banarasi", "Chiffon", "Cotton", "Crepe", "Designer",
-                       "Georgette", "Printed", "Silk", "Wedding"],
+            "Sarees": ["Ajrakh", "Banarasi", "Chiffon", "Cotton", "Crepe", "Designer",
+                       "Georgette", "Modal", "Printed", "Silk", "Wedding"],
         }
 
         for parent_name, children in tree.items():
@@ -102,5 +103,29 @@ async def _seed_categories():
                                 parent_id=parent.id,
                             )
                             session.add(leaf)
+
+        await session.commit()
+
+
+async def _migrate_saree_categories():
+    """Add Ajrakh and Modal under Sarees if not already present."""
+    async with AsyncSessionLocal() as session:
+        from models import Category
+        from sqlalchemy import select
+
+        result = await session.execute(
+            select(Category).where(Category.path == "Sarees")
+        )
+        sarees = result.scalar()
+        if not sarees:
+            return
+
+        for name in ["Ajrakh", "Modal"]:
+            path = f"Sarees/{name}"
+            existing = await session.execute(
+                select(Category).where(Category.path == path)
+            )
+            if not existing.scalar():
+                session.add(Category(name=name, path=path, parent_id=sarees.id))
 
         await session.commit()

@@ -240,6 +240,7 @@ function VariantCard({
                   </div>
                 )}
               </div>
+
             </div>
           )}
         </div>
@@ -498,12 +499,17 @@ export default function SingleUpload({
         setTags(ai.tags.join(", "));
         nameForGen = cleanName;
 
-        const flat = flattenCats(categoriesRef.current);
-        const lastSegment = (ai.suggested_category || "").split("/").pop()?.toLowerCase() || "";
-        const match = flat.find((c) => c.label.toLowerCase() === lastSegment);
-        if (match) {
-          setCategoryIds([match.id]);
-          catIdsForGen = [match.id];
+        // Only apply AI-suggested category if the user hasn't already picked one
+        if (categoryIdsRef.current.length === 0) {
+          const flat = flattenCats(categoriesRef.current);
+          const lastSegment = (ai.suggested_category || "").split("/").pop()?.toLowerCase() || "";
+          const match = flat.find((c) => c.label.toLowerCase() === lastSegment);
+          if (match) {
+            setCategoryIds([match.id]);
+            catIdsForGen = [match.id];
+          }
+        } else {
+          catIdsForGen = categoryIdsRef.current;
         }
         setSharedAnalysing(false);
       }
