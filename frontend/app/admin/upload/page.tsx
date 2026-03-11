@@ -5,9 +5,9 @@ import { getCategories } from "@/lib/api";
 import { Category } from "@/lib/types";
 import SingleUpload from "./SingleUpload";
 import BulkUpload from "./BulkUpload";
-import { ImageIcon, Layers, LayoutGrid } from "lucide-react";
+import { ImageIcon, Layers, LayoutGrid, Shirt } from "lucide-react";
 
-type UploadMode = "saree-parts" | "bulk";
+type UploadMode = "saree-parts" | "bulk" | "different-sarees";
 
 export default function UploadPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -98,12 +98,12 @@ export default function UploadPage() {
             ))}
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="space-y-3">
             {/* Option A: same saree */}
             <button
               type="button"
               onClick={() => setUploadMode("saree-parts")}
-              className="group text-left border-2 border-slate-200 hover:border-purple-400 hover:bg-purple-50 rounded-2xl p-4 transition-all"
+              className="group w-full text-left border-2 border-slate-200 hover:border-purple-400 hover:bg-purple-50 rounded-2xl p-4 transition-all"
             >
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center shrink-0 transition-colors">
@@ -118,11 +118,30 @@ export default function UploadPage() {
               </div>
             </button>
 
-            {/* Option B: different products */}
+            {/* Option B: different sarees */}
+            <button
+              type="button"
+              onClick={() => setUploadMode("different-sarees")}
+              className="group w-full text-left border-2 border-slate-200 hover:border-teal-400 hover:bg-teal-50 rounded-2xl p-4 transition-all"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-teal-100 group-hover:bg-teal-200 flex items-center justify-center shrink-0 transition-colors">
+                  <Shirt size={18} className="text-teal-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Different sarees</p>
+                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                    Each photo is a separate saree — each gets its own catalog entry, no auto-grouping
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            {/* Option C: different products */}
             <button
               type="button"
               onClick={() => setUploadMode("bulk")}
-              className="group text-left border-2 border-slate-200 hover:border-brand-400 hover:bg-brand-50 rounded-2xl p-4 transition-all"
+              className="group w-full text-left border-2 border-slate-200 hover:border-brand-400 hover:bg-brand-50 rounded-2xl p-4 transition-all"
             >
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-brand-100 group-hover:bg-brand-200 flex items-center justify-center shrink-0 transition-colors">
@@ -131,7 +150,7 @@ export default function UploadPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-700">Different products</p>
                   <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                    Colour variants or separate items — each gets its own catalog entry
+                    Colour variants or separate non-saree items — AI groups similar ones together
                   </p>
                 </div>
               </div>
@@ -153,6 +172,7 @@ export default function UploadPage() {
         <BulkUpload
           categories={categories}
           initialFiles={selectedFiles}
+          isSarees={uploadMode === "different-sarees"}
           onReset={reset}
         />
       )}

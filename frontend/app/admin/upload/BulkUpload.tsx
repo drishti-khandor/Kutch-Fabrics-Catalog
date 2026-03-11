@@ -105,10 +105,12 @@ function makeEntry(file: File): BulkEntry {
 export default function BulkUpload({
   categories,
   initialFiles,
+  isSarees = false,
   onReset,
 }: {
   categories: Category[];
   initialFiles: File[];
+  isSarees?: boolean;
   onReset: () => void;
 }) {
   const [items, setItems] = useState<BulkEntry[]>([]);
@@ -158,15 +160,22 @@ export default function BulkUpload({
         const groups: BatchAnalysisGroup[] = await analyseBatchImages(initialFiles);
 
         for (const group of groups) {
-          const sharedPid = group.indices.length > 1 ? generateProductId() : "";
+          const cat = (group.suggested_category || "").toLowerCase();
+          const isSareeGroup =
+            isSarees ||
+            cat.includes("saree") ||
+            cat.includes("sari");
+          const sharedPid = (!isSareeGroup && group.indices.length > 1) ? generateProductId() : "";
           const lastSeg = (group.suggested_category || "").split("/").pop()?.toLowerCase() || "";
           const match = flat.find((c) => c.label.toLowerCase() === lastSeg);
           const catIds = match ? [match.id] : [];
 
-          // If ANY item in this group has a user-entered product ID, use it for all
-          const userEnteredPid = group.indices
-            .map((i) => itemsRef.current[i]?.productId?.trim() || "")
-            .find((pid) => pid !== "") || "";
+          // For non-saree groups: if ANY item has a user-entered product ID, share it across all
+          const userEnteredPid = !isSareeGroup
+            ? (group.indices
+                .map((i) => itemsRef.current[i]?.productId?.trim() || "")
+                .find((pid) => pid !== "") || "")
+            : "";
           const groupPid = userEnteredPid || sharedPid;
 
           group.indices.forEach((itemIdx, posInGroup) => {
@@ -183,7 +192,10 @@ export default function BulkUpload({
               categoryIds: itemsRef.current[itemIdx]?.categoryIds?.length
                 ? itemsRef.current[itemIdx].categoryIds
                 : catIds,
-              productId: groupPid,
+              // Sarees: each item keeps its own individually-entered product ID
+              productId: isSareeGroup
+                ? (itemsRef.current[itemIdx]?.productId?.trim() || "")
+                : groupPid,
             };
           });
         }
