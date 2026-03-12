@@ -34,7 +34,7 @@ async def analyse_image(image_path: str) -> dict:
     ext = Path(image_path).suffix.lower().lstrip(".")
     mime = f"image/{'jpeg' if ext in ('jpg', 'jpeg') else ext}"
 
-    prompt = """You are a garment and fabric cataloging expert.
+    prompt = """You are a garment and fabric cataloging expert specialising in Indian textiles.
 Analyse this product image and return a JSON object with exactly these keys:
 {
   "product_name": "short colour-neutral name describing the garment type and fabric/print — NEVER include colour words here (e.g. 'Printed Harem Pants', 'Rayon Short Kurti', 'Ajrakh Cotton Saree'). The colour belongs only in the 'color' field.",
@@ -43,6 +43,10 @@ Analyse this product image and return a JSON object with exactly these keys:
   "tags": ["tag1", "tag2", ...],
   "suggested_category": "one of: Fabrics, Garments/Kurtis/Short Kurti, Garments/Kurtis/Long Kurti, Garments/Kurtis/Anarkali, Garments/Tops, Garments/Bottoms, Garments/Dresses, Garments/Jumpsuits, Garments/Saree Blouses, Sarees/Banarasi, Sarees/Chiffon, Sarees/Cotton, Sarees/Crepe, Sarees/Designer, Sarees/Georgette, Sarees/Printed, Sarees/Silk, Sarees/Wedding, Fabrics/Ajarak, Fabrics/Bandhani, Fabrics/Chanderi, Fabrics/Cotton, Fabrics/Georgette, Fabrics/Kota, Fabrics/Linen, Fabrics/Modal, Fabrics/Net, Fabrics/Rayon, Fabrics/Silk, Fabrics/Velvet"
 }
+
+SAREE IDENTIFICATION RULE (very important):
+Indian sarees are almost always photographed laid flat on a floor or table. When you see a long rectangular piece of unstitched fabric laid flat, with one or more decorative woven/printed borders running along its length and a visually distinct pallu (end section with denser or different patterning), classify it as a Saree — NOT a skirt, stole, or dupatta. Key saree cues: (1) unstitched rectangular fabric ~5-6 yards long, (2) horizontal border stripes along the length, (3) a pallu section at one end that is more ornate or textured, (4) the fabric is folded or piled and viewed from above on a flat surface. Do NOT classify such an image as a skirt or bottom.
+
 IMPORTANT: product_name must NEVER contain colour words. Colour goes only in the 'color' field.
 Return ONLY the JSON, no markdown, no explanation."""
 
