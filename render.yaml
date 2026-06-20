@@ -3,7 +3,7 @@ services:
     name: kutch-fabrics-backend
     env: docker
     plan: free
-    region: oregon
+    region: frankfurt
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /api/health
@@ -35,7 +35,7 @@ services:
     name: kutch-fabrics-frontend
     env: docker
     plan: free
-    region: oregon
+    region: frankfurt
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
     envVars:
