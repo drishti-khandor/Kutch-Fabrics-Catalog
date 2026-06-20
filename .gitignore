@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .next/
 node_modules/
+*.tsbuildinfo
 catalog_data/originals/
 catalog_data/watermarked/
 postgres_data/

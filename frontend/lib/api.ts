@@ -2,12 +2,28 @@ import { Category, Item, SearchResult, AIAnalysis, BatchAnalysisGroup } from "./
 
 const BASE = "/api";
 
+// Backend/proxy hiccups (Render cold start, deploy in progress, gateway
+// timeout) can return an HTML error page instead of JSON. Surfacing that
+// raw markup as the error message looks broken, so detect it and fall
+// back to a friendly message instead.
+export async function parseErrorMessage(res: Response): Promise<string> {
+  const contentType = res.headers.get("content-type") || "";
+  const text = await res.text();
+  if (contentType.includes("application/json")) {
+    try {
+      const data = JSON.parse(text);
+      if (data?.detail) return typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+    } catch {}
+  }
+  if (/^\s*</.test(text) || contentType.includes("text/html")) {
+    return `Server is temporarily unavailable (${res.status}). Please try again in a moment.`;
+  }
+  return text || res.statusText || `Request failed (${res.status})`;
+}
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, init);
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err || res.statusText);
-  }
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
 
@@ -76,7 +92,7 @@ export const downloadModelPhotosZip = async (ids?: number[], categoryPath?: stri
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ids, category_path: categoryPath }),
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -111,7 +127,7 @@ export const visualSearch = async (file: File, limit = 20): Promise<SearchResult
   fd.append("file", file);
   fd.append("limit", String(limit));
   const res = await fetch(`${BASE}/search/visual`, { method: "POST", body: fd });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 };
 
@@ -120,7 +136,7 @@ export const analyseImage = async (file: File): Promise<AIAnalysis> => {
   const fd = new FormData();
   fd.append("file", file);
   const res = await fetch(`${BASE}/upload/analyse`, { method: "POST", body: fd });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 };
 
@@ -138,7 +154,7 @@ export const previewModelImage = async (
   if (customPrompt) fd.append("custom_prompt", customPrompt);
   if (productId) fd.append("product_id", productId);
   const res = await fetch(`${BASE}/upload/preview-model`, { method: "POST", body: fd });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 };
 
@@ -156,7 +172,7 @@ export const previewModelImageMulti = async (
   if (customPrompt) fd.append("custom_prompt", customPrompt);
   if (productId) fd.append("product_id", productId);
   const res = await fetch(`${BASE}/upload/preview-model-multi`, { method: "POST", body: fd });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 };
 
@@ -164,12 +180,12 @@ export const analyseBatchImages = async (files: File[]): Promise<BatchAnalysisGr
   const fd = new FormData();
   files.forEach((f) => fd.append("files", f));
   const res = await fetch(`${BASE}/upload/analyse-batch`, { method: "POST", body: fd });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 };
 
 export const uploadItem = async (formData: FormData): Promise<Item> => {
   const res = await fetch(`${BASE}/upload/item`, { method: "POST", body: formData });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 };

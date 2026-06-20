@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { parseErrorMessage } from "@/lib/api";
 
 export interface AuthUser {
   id: number;
@@ -51,14 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) {
-      const text = await res.text();
-      let msg = text;
-      try {
-        msg = JSON.parse(text)?.detail ?? text;
-      } catch {}
-      throw new Error(msg);
-    }
+    if (!res.ok) throw new Error(await parseErrorMessage(res));
     const data = await res.json();
     localStorage.setItem(TOKEN_KEY, data.token);
     setUser(data.user);
