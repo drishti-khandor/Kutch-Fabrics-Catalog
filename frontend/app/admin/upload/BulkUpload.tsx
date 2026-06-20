@@ -16,6 +16,7 @@ import {
   ChevronRight,
   AlertCircle,
   RefreshCcw,
+  X,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -117,6 +118,7 @@ export default function BulkUpload({
   const [currentIdx, setCurrentIdx] = useState(0);
   const [genProgress, setGenProgress] = useState<{ done: number; total: number } | null>(null);
   const [saveProgress, setSaveProgress] = useState<{ done: number; total: number } | null>(null);
+  const [zoomedUrl, setZoomedUrl] = useState<string | null>(null);
 
   // Ref for stale-closure-safe reads inside async tasks
   const itemsRef = useRef<BulkEntry[]>([]);
@@ -527,7 +529,8 @@ export default function BulkUpload({
                     <img
                       src={current.modelUrls[current.selectedVersionIdx]}
                       alt="Model photo"
-                      className="w-full rounded-xl object-cover border border-slate-100"
+                      onClick={() => setZoomedUrl(current.modelUrls[current.selectedVersionIdx])}
+                      className="w-full rounded-xl object-contain bg-slate-50 border border-slate-100 cursor-zoom-in"
                     />
                     {current.generatingModel && (
                       <div className="absolute inset-0 bg-white/70 rounded-xl flex items-center justify-center">
@@ -709,6 +712,26 @@ export default function BulkUpload({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {zoomedUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setZoomedUrl(null)}
+        >
+          <img
+            src={zoomedUrl}
+            alt="Model photo — full size"
+            className="max-w-full max-h-full rounded-lg object-contain"
+          />
+          <button
+            type="button"
+            onClick={() => setZoomedUrl(null)}
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/90 text-slate-700 flex items-center justify-center hover:bg-white"
+          >
+            <X size={18} />
+          </button>
         </div>
       )}
 

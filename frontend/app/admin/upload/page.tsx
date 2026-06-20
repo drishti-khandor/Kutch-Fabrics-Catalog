@@ -5,7 +5,8 @@ import { getCategories } from "@/lib/api";
 import { Category } from "@/lib/types";
 import SingleUpload from "./SingleUpload";
 import BulkUpload from "./BulkUpload";
-import { ImageIcon, Layers, LayoutGrid, Shirt } from "lucide-react";
+import CameraCapture from "./CameraCapture";
+import { ImageIcon, Layers, LayoutGrid, Shirt, Camera } from "lucide-react";
 
 type UploadMode = "saree-parts" | "bulk" | "different-sarees";
 
@@ -13,6 +14,7 @@ export default function UploadPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadMode, setUploadMode] = useState<UploadMode | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,29 +46,39 @@ export default function UploadPage() {
 
       {selectedFiles.length === 0 ? (
         /* ── Drop zone ─────────────────────────────────────── */
-        <div
-          onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
-          onDragOver={(e) => e.preventDefault()}
-          onClick={() => inputRef.current?.click()}
-          className="border-2 border-dashed border-slate-200 rounded-2xl bg-white hover:border-brand-300 h-64 cursor-pointer flex items-center justify-center transition-colors"
-        >
-          <div className="flex flex-col items-center gap-3 text-slate-400">
-            <ImageIcon size={44} className="opacity-25" />
-            <div className="text-center">
-              <p className="text-sm font-medium text-slate-500">
-                Drop one or more product photos here
-              </p>
-              <p className="text-xs mt-1">Or click to browse — select multiple for bulk upload</p>
+        <div className="space-y-3">
+          <div
+            onDrop={(e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
+            onDragOver={(e) => e.preventDefault()}
+            onClick={() => inputRef.current?.click()}
+            className="border-2 border-dashed border-slate-200 rounded-2xl bg-white hover:border-brand-300 h-64 cursor-pointer flex items-center justify-center transition-colors"
+          >
+            <div className="flex flex-col items-center gap-3 text-slate-400">
+              <ImageIcon size={44} className="opacity-25" />
+              <div className="text-center">
+                <p className="text-sm font-medium text-slate-500">
+                  Drop one or more product photos here
+                </p>
+                <p className="text-xs mt-1">Or click to browse — select multiple for bulk upload</p>
+              </div>
             </div>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            />
           </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && handleFiles(e.target.files)}
-          />
+
+          <button
+            type="button"
+            onClick={() => setCameraOpen(true)}
+            className="w-full flex items-center justify-center gap-2 border-2 border-slate-200 rounded-2xl bg-white py-3 text-sm font-medium text-slate-500 hover:border-brand-300 hover:text-brand-600 transition-colors"
+          >
+            <Camera size={16} /> Open camera — take multiple photos
+          </button>
         </div>
       ) : needsDisambiguation ? (
         /* ── Disambiguation: same saree vs different products ── */
@@ -174,6 +186,16 @@ export default function UploadPage() {
           initialFiles={selectedFiles}
           isSarees={uploadMode === "different-sarees"}
           onReset={reset}
+        />
+      )}
+
+      {cameraOpen && (
+        <CameraCapture
+          onClose={() => setCameraOpen(false)}
+          onCapture={(files) => {
+            setCameraOpen(false);
+            if (files.length > 0) handleFiles(files);
+          }}
         />
       )}
     </div>

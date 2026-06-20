@@ -5,6 +5,7 @@ import { Category, AIAnalysis } from "@/lib/types";
 import { analyseImage, previewModelImage, previewModelImageMulti, uploadItem } from "@/lib/api";
 import SizeEditor from "@/components/SizeEditor";
 import CategoryPicker, { flattenCats } from "./CategoryPicker";
+import CameraCapture from "./CameraCapture";
 import {
   Upload,
   Sparkles,
@@ -16,6 +17,7 @@ import {
   AlertCircle,
   RefreshCcw,
   X,
+  Camera,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -108,6 +110,7 @@ function VariantCard({
   const sareePhotoInputRef = useRef<HTMLInputElement>(null);
   const hasModel = variant.model.urls.length > 0;
   const currentModelUrl = variant.model.urls[variant.model.selectedIdx];
+  const [zoomed, setZoomed] = useState(false);
 
   return (
     <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4">
@@ -223,7 +226,8 @@ function VariantCard({
                   <img
                     src={currentModelUrl}
                     alt="Model"
-                    className="w-full rounded-xl object-cover border border-purple-100 max-h-52"
+                    onClick={() => setZoomed(true)}
+                    className="w-full h-52 rounded-xl object-contain bg-slate-50 border border-purple-100 cursor-zoom-in"
                   />
                 )}
                 {variant.model.generating && (
@@ -241,6 +245,26 @@ function VariantCard({
                 )}
               </div>
 
+            </div>
+          )}
+
+          {zoomed && hasModel && (
+            <div
+              className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+              onClick={() => setZoomed(false)}
+            >
+              <img
+                src={currentModelUrl}
+                alt="Model — full size"
+                className="max-w-full max-h-full rounded-lg object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => setZoomed(false)}
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/90 text-slate-700 flex items-center justify-center hover:bg-white"
+              >
+                <X size={18} />
+              </button>
             </div>
           )}
         </div>
@@ -395,6 +419,7 @@ export default function SingleUpload({
   useEffect(() => { variantsRef.current = variants; }, [variants]);
 
   const addFileInputRef = useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   // ── Save state ─────────────────────────────────────────────
   const [saving, setSaving] = useState(false);
@@ -793,13 +818,22 @@ export default function SingleUpload({
               </span>
             )}
           </h3>
-          <button
-            type="button"
-            onClick={() => addFileInputRef.current?.click()}
-            className="flex items-center gap-1.5 text-xs border border-brand-200 text-brand-600 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors font-medium"
-          >
-            <Plus size={12} /> Add Colour
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => addFileInputRef.current?.click()}
+              className="flex items-center gap-1.5 text-xs border border-brand-200 text-brand-600 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors font-medium"
+            >
+              <Plus size={12} /> Add Colour
+            </button>
+            <button
+              type="button"
+              onClick={() => setCameraOpen(true)}
+              className="flex items-center gap-1.5 text-xs border border-slate-200 text-slate-500 px-3 py-1.5 rounded-lg hover:bg-slate-50 hover:text-brand-600 transition-colors font-medium"
+            >
+              <Camera size={12} /> Camera
+            </button>
+          </div>
           <input
             ref={addFileInputRef}
             type="file"
@@ -854,6 +888,16 @@ export default function SingleUpload({
           ? `Save ${unsavedCount} Colour Variants to Catalog`
           : "Save to Catalog"}
       </button>
+
+      {cameraOpen && (
+        <CameraCapture
+          onClose={() => setCameraOpen(false)}
+          onCapture={(files) => {
+            setCameraOpen(false);
+            if (files.length > 0) addColorVariants(files);
+          }}
+        />
+      )}
     </div>
   );
 }
