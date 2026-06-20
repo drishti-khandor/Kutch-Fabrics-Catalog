@@ -1,4 +1,5 @@
 
+import asyncio
 import base64
 import json
 import logging
@@ -53,7 +54,8 @@ IMPORTANT: product_name must NEVER contain colour words. Colour goes only in the
 Return ONLY the JSON, no markdown, no explanation."""
 
     try:
-        response = client.models.generate_content(
+        response = await asyncio.to_thread(
+            client.models.generate_content,
             model=settings.gemini_text_model,
             contents=[
                 types.Part.from_bytes(data=base64.b64decode(b64), mime_type=mime),
@@ -155,7 +157,8 @@ Rules:
 Return ONLY the JSON array, no markdown, no extra text.""")
 
     try:
-        response = client.models.generate_content(
+        response = await asyncio.to_thread(
+            client.models.generate_content,
             model=settings.gemini_text_model,
             contents=contents,
         )
@@ -208,7 +211,8 @@ Return ONLY the JSON array, no markdown, no extra text.""")
 async def embed_text(text: str) -> list[float]:
     """Generate a 768-dim embedding for similarity search."""
     client = get_client()
-    response = client.models.embed_content(
+    response = await asyncio.to_thread(
+        client.models.embed_content,
         model="gemini-embedding-001",
         contents=text,
         config=types.EmbedContentConfig(
@@ -221,7 +225,8 @@ async def embed_text(text: str) -> list[float]:
 
 async def embed_query(text: str) -> list[float]:
     client = get_client()
-    response = client.models.embed_content(
+    response = await asyncio.to_thread(
+        client.models.embed_content,
         model="gemini-embedding-001",
         contents=text,
         config=types.EmbedContentConfig(
@@ -572,7 +577,8 @@ async def generate_model_image_with_prompt(
 
     for modalities in (["IMAGE"], ["TEXT", "IMAGE"]):
         try:
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=settings.gemini_image_model,
                 contents=[image_part, prompt],
                 config=types.GenerateContentConfig(
@@ -656,7 +662,8 @@ async def generate_model_image_multi(
 
     for modalities in (["IMAGE"], ["TEXT", "IMAGE"]):
         try:
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=settings.gemini_image_model,
                 contents=[*image_parts, prompt],
                 config=types.GenerateContentConfig(
@@ -742,7 +749,8 @@ async def review_generated_image(
     )
 
     try:
-        response = client.models.generate_content(
+        response = await asyncio.to_thread(
+            client.models.generate_content,
             model=settings.gemini_text_model,
             contents=contents,
         )
@@ -769,7 +777,8 @@ async def embed_image_for_search(image_bytes: bytes, mime_type: str = "image/jpe
 Include: type of garment, fabric, color, pattern, style, occasion.
 Return only a plain text description, no JSON."""
 
-    response = client.models.generate_content(
+    response = await asyncio.to_thread(
+        client.models.generate_content,
         model=settings.gemini_text_model,
         contents=[
             types.Part.from_bytes(data=base64.b64decode(b64), mime_type=mime_type),
