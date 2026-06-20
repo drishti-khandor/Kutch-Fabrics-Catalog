@@ -1,0 +1,15 @@
+name: Keep Render services awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: curl -sf -m 60 https://kutch-fabrics-backend.onrender.com/api/health || true
+      - name: Ping frontend
+        run: curl -sf -m 60 https://kutch-fabrics-frontend.onrender.com || true

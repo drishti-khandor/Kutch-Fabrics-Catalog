@@ -10,7 +10,7 @@ const EXCLUDED_HEADERS = new Set(["host", "connection", "content-length"]);
 // surfacing the failure to the user (e.g. an admin trying to sign in after
 // the app sat idle overnight).
 const GATEWAY_RETRY_STATUSES = new Set([502, 503, 504]);
-const RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 15000, 15000]; // ~45s total
+const RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 15000, 15000, 15000, 15000]; // ~75s total
 
 function backendUrl() {
   return process.env.BACKEND_URL || "http://backend:8000";
