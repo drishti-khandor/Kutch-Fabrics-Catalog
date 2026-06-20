@@ -43,6 +43,7 @@ async def init_db():
         ))
     await _seed_categories()
     await _migrate_saree_categories()
+    await _migrate_rename_printed_category()
 
 
 async def _seed_categories():
@@ -62,7 +63,7 @@ async def _seed_categories():
                 "": ["Tops", "Bottoms", "Dresses", "Jumpsuits", "Saree Blouses"],
             },
             "Sarees": ["Ajrakh", "Banarasi", "Chiffon", "Cotton", "Crepe", "Designer",
-                       "Georgette", "Modal", "Printed", "Silk", "Wedding"],
+                       "Georgette", "Modal", "Natural Dye", "Silk", "Wedding"],
         }
 
         for parent_name, children in tree.items():
@@ -127,5 +128,33 @@ async def _migrate_saree_categories():
             )
             if not existing.scalar():
                 session.add(Category(name=name, path=path, parent_id=sarees.id))
+
+        await session.commit()
+
+
+async def _migrate_rename_printed_category():
+    """Rename the misleading 'Sarees/Printed' category to 'Sarees/Natural Dye'
+    and update any items already tagged with the old path."""
+    async with AsyncSessionLocal() as session:
+        from models import Category
+        from sqlalchemy import select
+
+        result = await session.execute(
+            select(Category).where(Category.path == "Sarees/Printed")
+        )
+        old = result.scalar()
+        if old:
+            old.name = "Natural Dye"
+            old.path = "Sarees/Natural Dye"
+
+        await session.execute(text(
+            "UPDATE items SET category_path = 'Sarees/Natural Dye' "
+            "WHERE category_path = 'Sarees/Printed'"
+        ))
+        await session.execute(text(
+            "UPDATE items SET extra_category_paths = "
+            "array_replace(extra_category_paths, 'Sarees/Printed', 'Sarees/Natural Dye') "
+            "WHERE 'Sarees/Printed' = ANY(extra_category_paths)"
+        ))
 
         await session.commit()

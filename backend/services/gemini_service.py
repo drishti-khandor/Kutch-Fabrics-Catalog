@@ -37,15 +37,17 @@ async def analyse_image(image_path: str) -> dict:
     prompt = """You are a garment and fabric cataloging expert specialising in Indian textiles.
 Analyse this product image and return a JSON object with exactly these keys:
 {
-  "product_name": "short colour-neutral name describing the garment type and fabric/print — NEVER include colour words here (e.g. 'Printed Harem Pants', 'Rayon Short Kurti', 'Ajrakh Cotton Saree'). The colour belongs only in the 'color' field.",
+  "product_name": "short colour-neutral name describing the garment type and fabric/technique — NEVER include colour words here (e.g. 'Hand Block-Printed Harem Pants', 'Rayon Short Kurti', 'Ajrakh Cotton Saree'). The colour belongs only in the 'color' field.",
   "color": "primary color(s) of the item (e.g. 'Blue and White', 'Yellow', 'Multi-colour')",
   "description": "2-3 sentence product description",
   "tags": ["tag1", "tag2", ...],
-  "suggested_category": "one of: Fabrics, Garments/Kurtis/Short Kurti, Garments/Kurtis/Long Kurti, Garments/Kurtis/Anarkali, Garments/Tops, Garments/Bottoms, Garments/Dresses, Garments/Jumpsuits, Garments/Saree Blouses, Sarees/Banarasi, Sarees/Chiffon, Sarees/Cotton, Sarees/Crepe, Sarees/Designer, Sarees/Georgette, Sarees/Printed, Sarees/Silk, Sarees/Wedding, Fabrics/Ajarak, Fabrics/Bandhani, Fabrics/Chanderi, Fabrics/Cotton, Fabrics/Georgette, Fabrics/Kota, Fabrics/Linen, Fabrics/Modal, Fabrics/Net, Fabrics/Rayon, Fabrics/Silk, Fabrics/Velvet"
+  "suggested_category": "one of: Fabrics, Garments/Kurtis/Short Kurti, Garments/Kurtis/Long Kurti, Garments/Kurtis/Anarkali, Garments/Tops, Garments/Bottoms, Garments/Dresses, Garments/Jumpsuits, Garments/Saree Blouses, Sarees/Banarasi, Sarees/Chiffon, Sarees/Cotton, Sarees/Crepe, Sarees/Designer, Sarees/Georgette, Sarees/Natural Dye, Sarees/Silk, Sarees/Wedding, Fabrics/Ajarak, Fabrics/Bandhani, Fabrics/Chanderi, Fabrics/Cotton, Fabrics/Georgette, Fabrics/Kota, Fabrics/Linen, Fabrics/Modal, Fabrics/Net, Fabrics/Rayon, Fabrics/Silk, Fabrics/Velvet"
 }
 
 SAREE IDENTIFICATION RULE (very important):
 Indian sarees are almost always photographed laid flat on a floor or table. When you see a long rectangular piece of unstitched fabric laid flat, with one or more decorative woven/printed borders running along its length and a visually distinct pallu (end section with denser or different patterning), classify it as a Saree — NOT a skirt, stole, or dupatta. Key saree cues: (1) unstitched rectangular fabric ~5-6 yards long, (2) horizontal border stripes along the length, (3) a pallu section at one end that is more ornate or textured, (4) the fabric is folded or piled and viewed from above on a flat surface. Do NOT classify such an image as a skirt or bottom.
+
+AUTHENTICITY RULE (very important): Every item in this catalog is handcrafted using natural dyes and traditional Indian textile techniques (e.g. Ajrakh, Bandhani, hand block printing, natural/vegetable dyeing) — NONE of it is cheap machine-printed fabric. NEVER use the bare word "printed" or "print" by itself in product_name or description, since that implies low-cost mechanical printing. If the surface pattern looks print-like, always name the specific traditional technique instead (e.g. "Hand Block-Printed", "Ajrakh Print", "Bandhani", "Batik") rather than a generic "Printed". If you cannot identify the specific technique, describe it as "naturally dyed" or "hand-crafted" rather than "printed".
 
 IMPORTANT: product_name must NEVER contain colour words. Colour goes only in the 'color' field.
 Return ONLY the JSON, no markdown, no explanation."""
@@ -91,7 +93,7 @@ async def analyse_batch(image_paths: list[str]) -> list[dict]:
     [
       {
         "indices": [0, 2],           # 0-based positions in image_paths
-        "canonical_name": "Printed Harem Pants",
+        "canonical_name": "Hand Block-Printed Harem Pants",
         "suggested_category": "Garments/Bottoms",
         "description": "...",
         "tags": ["harem pants", ...],
@@ -117,7 +119,7 @@ async def analyse_batch(image_paths: list[str]) -> list[dict]:
         "Fabrics, Garments/Kurtis/Short Kurti, Garments/Kurtis/Long Kurti, "
         "Garments/Kurtis/Anarkali, Garments/Tops, Garments/Bottoms, Garments/Dresses, "
         "Garments/Jumpsuits, Garments/Saree Blouses, Sarees/Banarasi, Sarees/Chiffon, "
-        "Sarees/Cotton, Sarees/Crepe, Sarees/Designer, Sarees/Georgette, Sarees/Printed, "
+        "Sarees/Cotton, Sarees/Crepe, Sarees/Designer, Sarees/Georgette, Sarees/Natural Dye, "
         "Sarees/Silk, Sarees/Wedding, Fabrics/Ajarak, Fabrics/Bandhani, Fabrics/Chanderi, "
         "Fabrics/Cotton, Fabrics/Georgette, Fabrics/Kota, Fabrics/Linen, Fabrics/Modal, "
         "Fabrics/Net, Fabrics/Rayon, Fabrics/Silk, Fabrics/Velvet"
@@ -135,7 +137,7 @@ Return a JSON array. Each element is ONE product group:
 [
   {{
     "indices": [list of 0-based image indices belonging to this group],
-    "canonical_name": "colour-neutral product name — NEVER include colour words (e.g. 'Printed Harem Pants', 'Rayon Short Kurti')",
+    "canonical_name": "colour-neutral product name — NEVER include colour words (e.g. 'Hand Block-Printed Harem Pants', 'Rayon Short Kurti')",
     "suggested_category": "pick exactly one from the valid list below",
     "description": "2-3 sentence product description",
     "tags": ["tag1", "tag2", ...],
@@ -147,6 +149,7 @@ Rules:
 - Every image index (0 to {n-1}) must appear in exactly one group.
 - The "colors" array must be the same length as "indices" and in the same order.
 - canonical_name must NEVER contain colour words.
+- AUTHENTICITY RULE: Every item in this catalog is handcrafted using natural dyes and traditional Indian textile techniques (Ajrakh, Bandhani, hand block printing, natural/vegetable dyeing) — NONE of it is cheap machine-printed fabric. NEVER use the bare word "printed" or "print" by itself in canonical_name or description. If the surface pattern looks print-like, name the specific traditional technique instead (e.g. "Hand Block-Printed", "Ajrakh Print", "Bandhani", "Batik"). If the specific technique is unclear, describe it as "naturally dyed" or "hand-crafted" instead of "printed".
 - Valid categories: {valid_cats}
 
 Return ONLY the JSON array, no markdown, no extra text.""")
