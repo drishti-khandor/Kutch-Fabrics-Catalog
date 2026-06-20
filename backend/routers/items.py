@@ -6,7 +6,7 @@ from database import get_db
 from models import Item
 from schemas import ItemOut, ItemUpdate, BulkDeleteRequest, ModelPhotosZipRequest
 from services.watermark_service import apply_watermark
-from services.storage_service import abs_path, watermarked_path, delete_item_files
+from services.storage_service import abs_path, watermarked_path, delete_item_files, exists as cache_exists
 import asyncio
 import io
 import zipfile
@@ -138,8 +138,12 @@ async def regenerate_model_photo(
     item = await db.get(Item, item_id)
     if not item:
         raise HTTPException(404, "Item not found")
-    if not item.image_original:
-        raise HTTPException(400, "Item has no original image")
+    if not item.image_original or not cache_exists(item.image_original):
+        raise HTTPException(
+            410,
+            "Original photo is no longer available (it's only cached for ~60 min after "
+            "upload) — please re-upload the item's photo to regenerate.",
+        )
 
     all_cats = ([item.category_path] if item.category_path else []) + (item.extra_category_paths or [])
     badge = product_id or str(item_id)
@@ -148,7 +152,6 @@ async def regenerate_model_photo(
         _regen_model_photo,
         item.id,
         abs_path(item.image_original),
-        abs_path(watermarked_path(item.image_original)),
         item.product_name,
         all_cats,
         badge,

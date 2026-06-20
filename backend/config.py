@@ -9,9 +9,15 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def fix_db_url(cls, v: str) -> str:
-        # Railway provides postgresql:// but asyncpg requires postgresql+asyncpg://
+        # Managed Postgres providers (Neon, Railway, etc.) give a postgresql://
+        # URL but asyncpg requires the postgresql+asyncpg:// driver prefix.
         if isinstance(v, str) and v.startswith("postgresql://"):
-            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        # asyncpg's connect() accepts an `ssl` kwarg, not `sslmode` — Neon/Supabase
+        # connection strings use `sslmode=require`, which SQLAlchemy would otherwise
+        # forward verbatim and crash with "unexpected keyword argument 'sslmode'".
+        if isinstance(v, str):
+            v = v.replace("sslmode=", "ssl=")
         return v
     gemini_api_key: str = ""
     gemini_image_model: str = "gemini-3-pro-image-preview"

@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: kutch-fabrics-backend
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_IMAGE_MODEL
+        value: gemini-3-pro-image-preview
+      - key: GEMINI_TEXT_MODEL
+        value: gemini-3.1-pro-preview
+      - key: SECRET_KEY
+        generateValue: true
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_REGION
+        value: eu-north-1
+      - key: AWS_S3_BASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://kutch-fabrics-frontend.onrender.com
+
+  - type: web
+    name: kutch-fabrics-frontend
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: BACKEND_URL
+        value: https://kutch-fabrics-backend.onrender.com

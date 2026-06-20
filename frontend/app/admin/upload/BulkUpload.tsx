@@ -493,11 +493,11 @@ export default function BulkUpload({
         ))}
       </div>
 
-      {/* Current item — two-column layout */}
+      {/* Current item — two-column layout (stacks on mobile) */}
       {current && (
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
           {/* Left — image panel (2/5) */}
-          <div className="col-span-2 space-y-3">
+          <div className="sm:col-span-2 space-y-3">
             {current.modelUrls.length > 0 ? (
               <>
                 <div>
@@ -567,7 +567,7 @@ export default function BulkUpload({
           </div>
 
           {/* Right — form panel (3/5) */}
-          <div className="col-span-3 space-y-3">
+          <div className="sm:col-span-3 space-y-3">
             {current.analysed && !current.analysing && (
               <div className="flex items-center gap-1.5 text-xs text-brand-600 bg-brand-50 px-2.5 py-1 rounded-lg w-fit">
                 <Sparkles size={10} /> AI auto-filled — review & adjust
