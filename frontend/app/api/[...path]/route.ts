@@ -40,12 +40,21 @@ async function proxy(req: NextRequest) {
         GATEWAY_RETRY_STATUSES.has(resp.status) &&
         (resp.headers.get("content-type") || "").includes("text/html");
 
-      if (isColdStartError && attempt < RETRY_DELAYS_MS.length) {
-        console.warn(
-          `[api-proxy] ${dest} returned ${resp.status} HTML (likely cold start) — retrying (attempt ${attempt + 1})`
+      if (isColdStartError) {
+        if (attempt < RETRY_DELAYS_MS.length) {
+          console.warn(
+            `[api-proxy] ${dest} returned ${resp.status} HTML (likely cold start) — retrying (attempt ${attempt + 1})`
+          );
+          await sleep(RETRY_DELAYS_MS[attempt]);
+          continue;
+        }
+        // Retries exhausted — return our own message instead of leaking
+        // Render's raw HTML error page to the client.
+        console.error(`[api-proxy] ${dest} still cold-starting after ${RETRY_DELAYS_MS.length} retries, giving up`);
+        return new Response(
+          JSON.stringify({ detail: "Server is still starting up. Please wait a moment and try again." }),
+          { status: 503, headers: { "Content-Type": "application/json" } }
         );
-        await sleep(RETRY_DELAYS_MS[attempt]);
-        continue;
       }
 
       const body = await resp.arrayBuffer();
@@ -68,11 +77,9 @@ async function proxy(req: NextRequest) {
     }
   }
 
-  // Exhausted retries on cold-start-style HTML errors
-  return new Response(
-    JSON.stringify({ detail: "Backend is taking longer than usual to start up. Please try again." }),
-    { status: 503, headers: { "Content-Type": "application/json" } }
-  );
+  // Unreachable: every loop iteration above returns or continues. Kept so
+  // TypeScript can prove `proxy` always resolves to a Response.
+  throw new Error("unreachable");
 }
 
 export const GET = proxy;
