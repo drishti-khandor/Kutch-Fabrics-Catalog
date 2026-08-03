@@ -36,14 +36,18 @@ async function proxy(req: NextRequest) {
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     try {
       const resp = await fetch(dest, init);
+      // Render also returns 429 when its request queue fills during a cold
+      // start. Our backend has no rate limiter, so any 429 is a cold-start
+      // artifact and should be retried just like a 502/503/504.
       const isColdStartError =
-        GATEWAY_RETRY_STATUSES.has(resp.status) &&
-        (resp.headers.get("content-type") || "").includes("text/html");
+        resp.status === 429 ||
+        (GATEWAY_RETRY_STATUSES.has(resp.status) &&
+          (resp.headers.get("content-type") || "").includes("text/html"));
 
       if (isColdStartError) {
         if (attempt < RETRY_DELAYS_MS.length) {
           console.warn(
-            `[api-proxy] ${dest} returned ${resp.status} HTML (likely cold start) — retrying (attempt ${attempt + 1})`
+            `[api-proxy] ${dest} returned ${resp.status} (likely cold start) — retrying (attempt ${attempt + 1})`
           );
           await sleep(RETRY_DELAYS_MS[attempt]);
           continue;
