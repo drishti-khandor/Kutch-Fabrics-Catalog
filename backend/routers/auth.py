@@ -6,6 +6,8 @@ from database import get_db
 from models import User
 from schemas import SignupRequest, LoginRequest, UserOut, TokenResponse
 import bcrypt
+import asyncio
+from functools import partial
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from config import get_settings
@@ -23,12 +25,15 @@ ADMIN_EMAILS = frozenset({
 bearer = HTTPBearer(auto_error=False)
 
 
-def _hash(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+async def _hash(password: str) -> str:
+    loop = asyncio.get_event_loop()
+    hashed = await loop.run_in_executor(None, partial(bcrypt.hashpw, password.encode(), bcrypt.gensalt()))
+    return hashed.decode()
 
 
-def _verify(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
+async def _verify(plain: str, hashed: str) -> bool:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, partial(bcrypt.checkpw, plain.encode(), hashed.encode()))
 
 
 def _create_token(user_id: int) -> str:
@@ -50,7 +55,7 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(400, "Email already registered. Please sign in.")
     user = User(
         email=email,
-        password_hash=_hash(payload.password),
+        password_hash=await _hash(payload.password),
         is_admin=email in ADMIN_EMAILS,
     )
     db.add(user)
@@ -64,7 +69,7 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     email = payload.email.strip().lower()
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar()
-    if not user or not _verify(payload.password, user.password_hash):
+    if not user or not await _verify(payload.password, user.password_hash):
         raise HTTPException(401, "Invalid email or password")
     return TokenResponse(token=_create_token(user.id), user=UserOut.model_validate(user))
 
